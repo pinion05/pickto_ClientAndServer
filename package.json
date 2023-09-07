@@ -1,0 +1,35 @@
+{
+  "name": "picktots",
+  "version": "1.0.0",
+  "main": "server.js",
+  "description": "",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "client": "cd client && yarn run dev",
+    "server": "nodemon server.js",
+    "dev": "concurrently --kill-others-on-fail \"yarn server\" \"yarn client\""
+  },
+  "devDependencies": {
+    "@types/react-datepicker": "^4.15.0",
+    "@types/uuid": "^9.0.2",
+    "concurrently": "^4.0.1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "aws-sdk": "^2.1448.0",
+    "body-parser": "1.18.3",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "4.16.4",
+    "fs": "^0.0.1-security",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "mysql": "^2.18.1",
+    "mysql2": "^3.6.0",
+    "react-datepicker": "^4.16.0",
+    "react-dropzone": "^14.2.3",
+    "uuid": "^9.0.0"
+  }
+}
