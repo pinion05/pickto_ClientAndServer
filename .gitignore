@@ -1,12 +1,14 @@
 /node_modules
 /client/node_modules
+/.env
 .env
+/uploads
+uploads
 # dependencies
 /.pnp
 .pnp.js
 
 # testing
-/coverage
 
 # production
 /build
