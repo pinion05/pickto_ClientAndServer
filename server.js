@@ -13,7 +13,6 @@ const myBucket = new AWS.S3();
 const jwt = require("jsonwebtoken");
 
 require("dotenv").config();
-
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -64,7 +63,7 @@ app.post("/api/register", (req, res) => {
   );
 });
 
-//!               로그인
+//!               로그인 + 토큰발급
 app.post("/api/login", (req, res) => {
   const { email, password } = req.body;
   connection.query(
@@ -74,17 +73,20 @@ app.post("/api/login", (req, res) => {
     [email, password],
     (err, rows, filed) => {
       const { id, nickname, email, password } = rows[0];
-      console.log("로그인시도", id, nickname, email, password);
-      if (rows.length === 0) {
-        res.status(403).send("유저정보조회에 실패했습니다.");
-        return;
-      }
+      console.log("🌠로그인시도한 유저의 정보");
+      console.log("🚀 ~ file: server.js:76 ~ app.post ~ password:", password);
+      console.log("🚀 ~ file: server.js:76 ~ app.post ~ email:", email);
+      console.log("🚀 ~ file: server.js:76 ~ app.post ~ id:", id);
+      console.log("🚀 ~ file: server.js:76 ~ app.post ~ nickname:", nickname);
+      console.log("✅유저정보 조회성공!");
+
       if (err) {
         console.log(err);
         res.status(500).send("유저 조회중 에러 발생");
         return;
       }
-      //*            로그인 승인처리
+
+      //*            로그인 승인처리( 토큰발급 )
       try {
         const accessToken = jwt.sign(
           {
@@ -119,14 +121,95 @@ app.post("/api/login", (req, res) => {
           secure: false,
           httpOnly: true,
         });
-
-        res.status(200).send("로그인허용됨");
+        const { password, ...others } = rows[0];
+        res.status(200).json(others);
       } catch (err) {
         console.log("토큰 발급중 에러발생");
         res.status(500).json(err);
       }
     }
   );
+});
+
+//!                             토큰 검증
+app.get(`/accesstoken`, (req, res) => {
+  console.log("토큰검증시도됨");
+  try {
+    const { accessToken, refreshToken } = req.cookies;
+    const accessTokenData = jwt.verify(
+      accessToken,
+      process.env.JWT_ACCESS_SECRET
+    );
+    const { id, nickname, email } = accessTokenData;
+    console.log(
+      "🚀 ~ file: server.js:142 ~ app.get ~ accessTokenData:",
+      accessTokenData
+    );
+    connection.query(
+      `
+      SELECT * FROM users 
+      WHERE email=?`,
+      [email],
+      (err, rows, filed) => {
+        const { password, ...others } = rows[0];
+        console.log("유저 토큰 아이디 일치");
+        res.status(200).send(others);
+      }
+    );
+  } catch (error) {
+    console.error(error);
+    res.status(500).send(error);
+  }
+});
+
+//!               refreshToken 을 이용하여 토큰 재발급
+app.get("/refreshtoken", (req, res) => {
+  console.log("✨토큰 재발급 시도됨");
+  try {
+    const { accessToken, refreshToken } = req.cookies;
+    const refreshTokenData = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESH_SECRET
+    );
+    const { id, nickname, email } = refreshTokenData;
+    connection.query(
+      `
+      SELECT * FROM users 
+      WHERE email=?`,
+      [email],
+      (err, rows, filed) => {
+        const { id, nickname, email, password } = rows[0];
+        jwt.sign;
+        console.log("✅refreshToken email 일치");
+        //*           accesToken 새로발급
+        try {
+          const accessToken = jwt.sign(
+            {
+              id: id,
+              nickname: nickname,
+              email: email,
+            },
+            process.env.JWT_ACCESS_SECRET,
+            {
+              expiresIn: "1m",
+              issuer: "pickto",
+            }
+          );
+          res.cookie("accessToken", accessToken, {
+            secure: false,
+            httpOnly: true,
+          });
+          res.status(200).send("쿠키 재발급됨");
+        } catch (err) {}
+      }
+    );
+    console.log(
+      "🚀 ~ file: server.js:174 ~ app.get ~ refreshTokenData:",
+      refreshTokenData
+    );
+  } catch (err) {
+    console.error(err);
+  }
 });
 
 //!                posts 테이블의 모든 rows 전송
@@ -193,8 +276,8 @@ app.post("/api/post", upload.single("file"), (req, res) => {
     });
 });
 
-//!               추천여부 확인하기
 app.get("/api/vote", (req, res) => {
+  //! 추천여부 확인하기
   const postID = req.query.postID;
   const userID = req.query.userID;
   console.log(`postID = ${postID} userID = ${userID} `);
